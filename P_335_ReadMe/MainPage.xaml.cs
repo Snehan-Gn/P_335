@@ -2,24 +2,28 @@
 {
     public partial class MainPage : ContentPage
     {
-        int count = 0;
+        public List<Book> Books { get; set; }
 
         public MainPage()
         {
             InitializeComponent();
-        }
 
-        private void OnCounterClicked(object sender, EventArgs e)
+            Books = new List<Book>
         {
-            count++;
+            new Book { Title = "Livre 1", Author = "Auteur Nom" },
+            new Book { Title = "Livre 2", Author = "Auteur Nom" },
+            new Book { Title = "Livre 3", Author = "Auteur Nom" },
+            new Book { Title = "Livre 4", Author = "Auteur Nom" }
+        };
 
-            if (count == 1)
-                CounterBtn.Text = $"Clicked {count} time";
-            else
-                CounterBtn.Text = $"Clicked {count} times";
-
-            SemanticScreenReader.Announce(CounterBtn.Text);
+            BooksCollection.ItemsSource = Books;
         }
+    }
+
+    public class Book
+    {
+        public string Title { get; set; }
+        public string Author { get; set; }
     }
 
 }
