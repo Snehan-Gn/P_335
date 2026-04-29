@@ -16,12 +16,20 @@ namespace P_335_ReadMe.Models
         [JsonPropertyName("author")]
         public string Author { get; set; } = string.Empty;
 
-        public byte[]? EpubData { get; set; }
+        [JsonPropertyName("epub_file_path")]
+        public string? EpubFilePath { get; set; }
 
+        [JsonPropertyName("cover_image_path")]
+        public string? CoverImagePath { get; set; }
+
+        public byte[]? EpubData { get; set; }
         public byte[]? CoverImage { get; set; }
 
-        [JsonPropertyName("uploaded_at")]
         public DateTime DateAdded { get; set; }
+
+        [JsonPropertyName("uploaded_at")]
+        [Ignore]
+        public string? UploadedAt { get; set; }
 
         [JsonPropertyName("description")]
         public string Tags { get; set; } = string.Empty;
