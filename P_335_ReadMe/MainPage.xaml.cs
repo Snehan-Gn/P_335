@@ -51,29 +51,56 @@ namespace P_335_ReadMe
 
                     if (existing == null)
                     {
-                        System.Diagnostics.Debug.WriteLine($">>> Ajout : {apiBook.Title}");
+                        System.Diagnostics.Debug.WriteLine($">>> Nouveau livre API détecté : {apiBook.Title}");
+                        
+                        // IMPORTANT : On remet l'ID à 0 pour laisser SQLite gérer l'auto-incrément 
+                        // et éviter les conflits avec des IDs locaux existants.
+                        apiBook.Id = 0; 
+
                         if (!string.IsNullOrEmpty(apiBook.CoverImagePath))
-                            apiBook.CoverImage = await _apiService.FetchFileAsync(apiBook.CoverImagePath);
-
-                        if (!string.IsNullOrEmpty(apiBook.EpubFilePath))
-                            apiBook.EpubData = await _apiService.FetchFileAsync(apiBook.EpubFilePath);
-
-                        await _db.InsertAsync(apiBook);
-                    }
-                    else if (existing.EpubData == null || existing.EpubData.Length == 0)
-                    {
-                        // Tentative de récupération des données si manquantes
-                        bool updated = false;
-                        if (!string.IsNullOrEmpty(apiBook.CoverImagePath) && (existing.CoverImage == null || existing.CoverImage.Length == 0))
                         {
-                            existing.CoverImage = await _apiService.FetchFileAsync(apiBook.CoverImagePath);
-                            updated = true;
+                            apiBook.CoverImage = await _apiService.FetchFileAsync(apiBook.CoverImagePath);
                         }
 
                         if (!string.IsNullOrEmpty(apiBook.EpubFilePath))
                         {
-                            existing.EpubData = await _apiService.FetchFileAsync(apiBook.EpubFilePath);
+                            apiBook.EpubData = await _apiService.FetchFileAsync(apiBook.EpubFilePath);
+                        }
+
+                        await _db.InsertAsync(apiBook);
+                    }
+                    else
+                    {
+                        bool updated = false;
+
+                        // Mise à jour des métadonnées si elles ont changé sur le serveur
+                        if (existing.EpubFilePath != apiBook.EpubFilePath)
+                        {
+                            existing.EpubFilePath = apiBook.EpubFilePath;
                             updated = true;
+                        }
+                        if (existing.CoverImagePath != apiBook.CoverImagePath)
+                        {
+                            existing.CoverImagePath = apiBook.CoverImagePath;
+                            updated = true;
+                        }
+
+                        if (existing.EpubData == null || existing.EpubData.Length == 0)
+                        {
+                            if (!string.IsNullOrEmpty(apiBook.EpubFilePath))
+                            {
+                                existing.EpubData = await _apiService.FetchFileAsync(apiBook.EpubFilePath);
+                                updated = true;
+                            }
+                        }
+
+                        if (existing.CoverImage == null || existing.CoverImage.Length == 0)
+                        {
+                            if (!string.IsNullOrEmpty(apiBook.CoverImagePath))
+                            {
+                                existing.CoverImage = await _apiService.FetchFileAsync(apiBook.CoverImagePath);
+                                updated = true;
+                            }
                         }
 
                         if (updated) await _db.UpdateAsync(existing);
@@ -108,10 +135,46 @@ namespace P_335_ReadMe
         private async void OpenBook(Book book)
         {
             _currentBookRecord = book;
+            System.Diagnostics.Debug.WriteLine($">>> Ouverture du livre : {book.Title}");
+
+            // Si les données sont manquantes (ex: échec de sync initiale), on tente un téléchargement à la demande
             if (book.EpubData == null || book.EpubData.Length == 0)
             {
-                await DisplayAlert("Erreur", "Le fichier Epub est vide ou manquant. Vérifiez votre connexion.", "OK");
-                return;
+                if (!string.IsNullOrEmpty(book.EpubFilePath))
+                {
+                    System.Diagnostics.Debug.WriteLine($">>> Données manquantes, tentative de téléchargement immédiat...");
+                    book.EpubData = await _apiService.FetchFileAsync(book.EpubFilePath);
+                    
+                    if (book.EpubData != null && _db != null)
+                    {
+                        await _db.UpdateAsync(book);
+                        System.Diagnostics.Debug.WriteLine($">>> Livre mis à jour dans la base locale.");
+                    }
+                }
+            }
+
+            if (book.EpubData == null || book.EpubData.Length == 0)
+            {
+                var urlTried = book.EpubFilePath;
+                if (!string.IsNullOrEmpty(urlTried) && !urlTried.StartsWith("http"))
+                    urlTried = $"http://10.0.2.2:3000/{urlTried.TrimStart('/')}";
+
+                bool pickLocally = await DisplayAlert("Fichier introuvable", 
+                    $"Le serveur n'a pas pu fournir le fichier pour '{book.Title}'.\n\n" +
+                    "Souhaitez-vous sélectionner le fichier .epub manuellement sur votre appareil pour l'associer à ce livre ?", "Oui", "Non");
+
+                if (pickLocally)
+                {
+                    var result = await FilePicker.Default.PickAsync(new PickOptions { PickerTitle = "Sélectionnez le fichier correspondant" });
+                    if (result != null)
+                    {
+                        book.EpubData = await File.ReadAllBytesAsync(result.FullPath);
+                        if (_db != null) await _db.UpdateAsync(book);
+                        await DisplayAlert("Succès", "Le fichier a été associé et sauvegardé localement.", "OK");
+                    }
+                    else return;
+                }
+                else return;
             }
 
             try
@@ -119,6 +182,7 @@ namespace P_335_ReadMe
                 using var stream = new MemoryStream(book.EpubData);
                 _openedBook = await EpubReader.ReadBookAsync(stream);
 
+                ReaderTitleLabel.Text = book.Title;
                 BooksCollection.IsVisible = false;
                 ReaderContainer.IsVisible = true;
 
@@ -126,7 +190,8 @@ namespace P_335_ReadMe
             }
             catch (Exception ex)
             {
-                await DisplayAlert("Erreur", "Impossible de lire l'Epub : " + ex.Message, "OK");
+                System.Diagnostics.Debug.WriteLine($">>> ERREUR Lecture Epub : {ex.Message}");
+                await DisplayAlert("Erreur", "Impossible de lire l'Epub (fichier corrompu ou format invalide) : " + ex.Message, "OK");
             }
         }
 
@@ -137,6 +202,8 @@ namespace P_335_ReadMe
 
             var chapter = _openedBook.ReadingOrder[index];
             ReaderView.Source = new HtmlWebViewSource { Html = chapter.Content };
+
+            PageIndicatorLabel.Text = $"Chapitre {index + 1} / {_openedBook.ReadingOrder.Count}";
 
             _currentBookRecord.LastPageRead = index;
             await _db.UpdateAsync(_currentBookRecord);
@@ -187,12 +254,11 @@ namespace P_335_ReadMe
             }
         }
 
-        private void OnBookSelected(object sender, SelectionChangedEventArgs e)
+        private void OnBookTapped(object sender, TappedEventArgs e)
         {
-            if (e.CurrentSelection.FirstOrDefault() is Book selectedBook)
+            if (e.Parameter is Book selectedBook)
             {
                 OpenBook(selectedBook);
-                ((CollectionView)sender).SelectedItem = null;
             }
         }
 

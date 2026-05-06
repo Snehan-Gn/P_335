@@ -5,6 +5,7 @@
     <ActiveDebugFramework>net8.0-android</ActiveDebugFramework>
     <ActiveDebugProfile>Pixel_7a_API_34 (Android 14.0 - API 34)</ActiveDebugProfile>
     <SelectedPlatformGroup>PhysicalDevice</SelectedPlatformGroup>
+    <SelectedDevice>Google Pixel 8a</SelectedDevice>
   </PropertyGroup>
   <ItemGroup>
     <None Update="App.xaml">

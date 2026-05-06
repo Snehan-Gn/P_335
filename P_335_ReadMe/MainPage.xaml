@@ -14,14 +14,16 @@
         <Label Grid.Row="0" Text="Ma Bibliothèque" TextColor="White" 
                FontSize="24" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center" />
 
-        <CollectionView x:Name="BooksCollection" Grid.Row="1" Margin="10"
-                        SelectionMode="Single" SelectionChanged="OnBookSelected">
+        <CollectionView x:Name="BooksCollection" Grid.Row="1" Margin="10" SelectionMode="None">
             <CollectionView.ItemsLayout>
                 <GridItemsLayout Orientation="Vertical" Span="2" HorizontalItemSpacing="10" VerticalItemSpacing="10" />
             </CollectionView.ItemsLayout>
             <CollectionView.ItemTemplate>
                 <DataTemplate>
                     <Frame BackgroundColor="White" BorderColor="#A5D6A7" CornerRadius="10" Padding="0" HasShadow="True">
+                        <Frame.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnBookTapped" CommandParameter="{Binding .}" />
+                        </Frame.GestureRecognizers>
                         <VerticalStackLayout Spacing="5" Padding="10">
                             <!-- Image avec fallback si nulle -->
                             <Grid HeightRequest="150">
@@ -49,23 +51,33 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <Grid x:Name="ReaderContainer" Grid.Row="0" Grid.RowSpan="3" IsVisible="False" BackgroundColor="White">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-                <RowDefinition Height="60" />
-            </Grid.RowDefinitions>
-            <Button Text="Fermer la lecture" Clicked="OnCloseReaderClicked" BackgroundColor="#2E7D32" TextColor="White" CornerRadius="0" />
-            <WebView x:Name="ReaderView" Grid.Row="1" />
-            <HorizontalStackLayout Grid.Row="2" HorizontalOptions="Center" Spacing="20">
-                <Button Text="Précédent" Clicked="OnPreviousClicked" BackgroundColor="#4CAF50" TextColor="White" WidthRequest="120" />
-                <Button Text="Suivant" Clicked="OnNextClicked" BackgroundColor="#4CAF50" TextColor="White" WidthRequest="120" />
-            </HorizontalStackLayout>
-        </Grid>
-
         <HorizontalStackLayout Grid.Row="2" HorizontalOptions="Center" Spacing="10" Padding="10">
             <Button Text=" + Importer Epub" Clicked="OnImportClicked" BackgroundColor="#2E7D32" TextColor="White" CornerRadius="25" />
             <Entry x:Name="TagFilter" Placeholder="Filtrer..." WidthRequest="200" TextChanged="OnFilterChanged" />
         </HorizontalStackLayout>
+
+        <Grid x:Name="ReaderContainer" Grid.Row="0" Grid.RowSpan="3" IsVisible="False" BackgroundColor="White">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Header du Lecteur -->
+            <Grid Grid.Row="0" BackgroundColor="#2E7D32" Padding="10" ColumnDefinitions="Auto, *, Auto">
+                <Button Grid.Column="0" Text="← Retour" Clicked="OnCloseReaderClicked" BackgroundColor="Transparent" TextColor="White" FontAttributes="Bold" />
+                <Label Grid.Column="1" x:Name="ReaderTitleLabel" Text="Lecture" TextColor="White" FontSize="16" FontAttributes="Bold" 
+                       HorizontalOptions="Center" VerticalOptions="Center" LineBreakMode="TailTruncation" />
+            </Grid>
+
+            <WebView x:Name="ReaderView" Grid.Row="1" />
+
+            <!-- Barre de navigation -->
+            <Grid Grid.Row="2" BackgroundColor="#F1F8E9" Padding="10" ColumnDefinitions="*, *, *">
+                <Button Grid.Column="0" Text="Précédent" Clicked="OnPreviousClicked" BackgroundColor="#4CAF50" TextColor="White" CornerRadius="20" HeightRequest="40" />
+                <Label Grid.Column="1" x:Name="PageIndicatorLabel" Text="Chapitre 0/0" HorizontalOptions="Center" VerticalOptions="Center" TextColor="#1B5E20" FontSize="12" />
+                <Button Grid.Column="2" Text="Suivant" Clicked="OnNextClicked" BackgroundColor="#4CAF50" TextColor="White" CornerRadius="20" HeightRequest="40" />
+            </Grid>
+        </Grid>
     </Grid>
 </ContentPage>

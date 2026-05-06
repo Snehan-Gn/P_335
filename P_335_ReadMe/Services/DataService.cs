@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using P_335_ReadMe.Models;
-using Microsoft.Maui.Devices;
 
 namespace P_335_ReadMe.Services
 {
@@ -34,27 +31,60 @@ namespace P_335_ReadMe.Services
 
             try
             {
-                var url = filePath.StartsWith("http") 
-                    ? filePath 
-                    : $"{BaseUrl}/{filePath.TrimStart('/')}";
+                // Normalisation de l'URL
+                string url;
+                if (filePath.StartsWith("http"))
+                {
+                    url = filePath;
+                }
+                else
+                {
+                    var cleanPath = filePath.TrimStart('/').Replace("\\", "/");
+                    url = $"{BaseUrl}/{cleanPath}";
+                }
+
+                // Ajustement pour l'émulateur Android (redirection localhost vers l'hôte)
+                if (DeviceInfo.Platform == DevicePlatform.Android)
+                {
+                    url = url.Replace("127.0.0.1", "10.0.2.2").Replace("localhost", "10.0.2.2");
+                }
+
+                System.Diagnostics.Debug.WriteLine($">>> Tentative de téléchargement : {url}");
 
                 var response = await _httpClient.GetAsync(url);
                 
+                // Si non trouvé, on tente plusieurs préfixes courants
                 if (response.StatusCode == System.Net.HttpStatusCode.NotFound && !filePath.StartsWith("http"))
                 {
-                    url = $"{BaseUrl}/files/{filePath.TrimStart('/')}";
-                    response = await _httpClient.GetAsync(url);
+                    var prefixes = new[] { "uploads", "public", "static", "books", "files" };
+                    var cleanPath = filePath.TrimStart('/').Replace("\\", "/");
+
+                    foreach (var prefix in prefixes)
+                    {
+                        url = $"{BaseUrl}/{prefix}/{cleanPath}";
+                        if (DeviceInfo.Platform == DevicePlatform.Android)
+                            url = url.Replace("127.0.0.1", "10.0.2.2").Replace("localhost", "10.0.2.2");
+
+                        System.Diagnostics.Debug.WriteLine($">>> Tentative alternative ({prefix}) : {url}");
+                        response = await _httpClient.GetAsync(url);
+                        
+                        if (response.IsSuccessStatusCode) break;
+                    }
                 }
 
                 if (response.IsSuccessStatusCode)
-                    return await response.Content.ReadAsByteArrayAsync();
+                {
+                    var data = await response.Content.ReadAsByteArrayAsync();
+                    System.Diagnostics.Debug.WriteLine($">>> Succès : {data.Length} octets téléchargés");
+                    return data;
+                }
 
-                System.Diagnostics.Debug.WriteLine($"Fichier introuvable : {url} ({response.StatusCode})");
+                System.Diagnostics.Debug.WriteLine($">>> Échec définitif : {url} (Statut: {response.StatusCode})");
                 return null;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Erreur telechargement fichier : {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($">>> ERREUR critique téléchargement : {ex.Message}");
                 return null;
             }
         }
