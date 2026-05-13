@@ -1,8 +1,15 @@
 ﻿using System.Net.Http.Json;
+using System.Text.Json.Serialization;
 using P_335_ReadMe.Models;
 
 namespace P_335_ReadMe.Services
 {
+    public class LoginResponse
+    {
+        [JsonPropertyName("token")]
+        public string? Token { get; set; }
+    }
+
     public class ApiService
     {
         private static readonly HttpClient _httpClient = new HttpClient();
@@ -12,10 +19,89 @@ namespace P_335_ReadMe.Services
             
         public static string UrlApi => $"{BaseUrl}/books";
 
+        public async Task<string?> LoginAsync(string email, string password)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync($"{BaseUrl}/login", new { email, password });
+                if (response.IsSuccessStatusCode)
+                {
+                    var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+                    return result?.Token;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur Login : {ex.Message}");
+            }
+            return null;
+        }
+
+        public async Task<bool> RegisterAsync(string username, string email, string password)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsJsonAsync($"{BaseUrl}/register", new { username, email, password });
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur Register : {ex.Message}");
+                return false;
+            }
+        }
+
+        private void AddAuthHeader()
+        {
+            var token = Preferences.Get("jwt_token", string.Empty);
+            if (!string.IsNullOrEmpty(token))
+            {
+                _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+        }
+
+        public async Task<Book?> UploadBookAsync(string filePath)
+        {
+            try
+            {
+                AddAuthHeader();
+                using var content = new MultipartFormDataContent();
+                
+                var fileStream = File.OpenRead(filePath);
+                var streamContent = new StreamContent(fileStream);
+                
+                // On s'assure que le Content-Type est correct pour un EPUB
+                streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/epub+zip");
+                
+                // Le nom du champ doit correspondre exactement à celui attendu par multer: 'epub_file'
+                content.Add(streamContent, "epub_file", Path.GetFileName(filePath));
+
+                System.Diagnostics.Debug.WriteLine($">>> Uploading to: {BaseUrl}/books");
+                
+                var response = await _httpClient.PostAsync($"{BaseUrl}/books", content);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<Book>();
+                }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    System.Diagnostics.Debug.WriteLine($">>> Upload Failed: {response.StatusCode} - {error}");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Erreur Upload : {ex.Message}");
+            }
+            return null;
+        }
+
         public async Task<List<Book>> FetchBooksAsync()
         {
             try
             {
+                AddAuthHeader();
                 return await _httpClient.GetFromJsonAsync<List<Book>>(UrlApi) ?? new();
             }
             catch (Exception ex)
@@ -31,6 +117,7 @@ namespace P_335_ReadMe.Services
 
             try
             {
+                AddAuthHeader();
                 // Normalisation de l'URL
                 string url;
                 if (filePath.StartsWith("http"))

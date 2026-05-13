@@ -1,0 +1,558 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "PWeb API",
+    "description": "Swagger documentation pour PWeb API",
+    "version": "1.0.0"
+  },
+  "host": "localhost:3000",
+  "basePath": "/",
+  "schemes": ["http"],
+  "securityDefinitions": {
+    "Bearer": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header",
+      "description": "Format: Bearer <token>"
+    }
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "description": "Vérifie la connexion à la base de données",
+        "responses": {
+          "200": {
+            "description": "Connexion établie"
+          }
+        }
+      }
+    },
+    "/register": {
+      "post": {
+        "description": "Enregistre un nouvel utilisateur",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "required": ["username", "email", "password"],
+              "properties": {
+                "username": { "type": "string" },
+                "email": { "type": "string" },
+                "password": { "type": "string" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Utilisateur créé",
+            "schema": { "$ref": "#/definitions/User" }
+          },
+          "500": {
+            "description": "Erreur serveur",
+            "schema": { "$ref": "#/definitions/Error" }
+          }
+        }
+      }
+    },
+    "/login": {
+      "post": {
+        "description": "Connexion utilisateur",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "required": ["email", "password"],
+              "properties": {
+                "email": { "type": "string" },
+                "password": { "type": "string" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authentification réussie",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "token": { "type": "string" }
+              }
+            }
+          },
+          "401": {
+            "description": "Identifiants invalides",
+            "schema": { "$ref": "#/definitions/Error" }
+          },
+          "500": {
+            "description": "Erreur serveur",
+            "schema": { "$ref": "#/definitions/Error" }
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "security": [{ "Bearer": [] }],
+        "description": "Liste tous les utilisateurs",
+        "responses": {
+          "200": {
+            "description": "Liste des utilisateurs",
+            "schema": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/User" }
+            }
+          },
+          "401": { "description": "Non autorisé" },
+          "500": { "schema": { "$ref": "#/definitions/Error" } }
+        }
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "security": [{ "Bearer": [] }],
+        "description": "Récupère un utilisateur par ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Utilisateur trouvé",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "user": { "$ref": "#/definitions/User" }
+              }
+            }
+          },
+          "404": { "description": "Utilisateur non trouvé" },
+          "500": { "schema": { "$ref": "#/definitions/Error" } }
+        }
+      }
+    },
+    "/books": {
+      "get": {
+        "security": [{ "Bearer": [] }],
+        "description": "Liste les livres de l'utilisateur",
+        "responses": {
+          "200": {
+            "description": "Liste des livres",
+            "schema": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/Book" }
+            }
+          },
+          "500": { "schema": { "$ref": "#/definitions/Error" } }
+        }
+      },
+      "post": {
+        "security": [{ "Bearer": [] }],
+        "description": "Télécharge un nouveau livre (EPUB)",
+        "consumes": ["multipart/form-data"],
+        "parameters": [
+          {
+            "name": "epub_file",
+            "in": "formData",
+            "type": "file",
+            "required": true,
+            "description": "Fichier EPUB à télécharger"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Livre créé",
+            "schema": { "$ref": "#/definitions/Book" }
+          },
+          "400": { "description": "Fichier manquant" },
+          "500": { "schema": { "$ref": "#/definitions/Error" } }
+        }
+      }
+    },
+    "/books/{id}": {
+      "get": {
+        "security": [{ "Bearer": [] }],
+        "description": "Récupère un livre par ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Livre trouvé",
+            "schema": { "$ref": "#/definitions/Book" }
+          },
+          "404": { "description": "Livre non trouvé" }
+        }
+      },
+      "put": {
+        "security": [{ "Bearer": [] }],
+        "description": "Met à jour un livre",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "title": { "type": "string" },
+                "author": { "type": "string" },
+                "description": { "type": "string" },
+                "publish_date": { "type": "string", "format": "date" },
+                "language_": { "type": "string" },
+                "isbn": { "type": "string" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Livre mis à jour",
+            "schema": { "$ref": "#/definitions/Book" }
+          },
+          "404": { "description": "Livre non trouvé" }
+        }
+      },
+      "delete": {
+        "security": [{ "Bearer": [] }],
+        "description": "Supprime un livre",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Livre supprimé",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/comments": {
+      "get": {
+        "security": [{ "Bearer": [] }],
+        "description": "Liste tous les commentaires de l'utilisateur",
+        "responses": {
+          "200": {
+            "description": "Liste des commentaires",
+            "schema": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/Comment" }
+            }
+          }
+        }
+      }
+    },
+    "/comments/{book_id}": {
+      "get": {
+        "security": [{ "Bearer": [] }],
+        "description": "Liste les commentaires d'un livre",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des commentaires",
+            "schema": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/Comment" }
+            }
+          },
+          "404": { "description": "Livre non trouvé" }
+        }
+      },
+      "post": {
+        "security": [{ "Bearer": [] }],
+        "description": "Ajoute un commentaire à un livre",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "required": ["title", "message", "rating"],
+              "properties": {
+                "title": { "type": "string" },
+                "message": { "type": "string" },
+                "rating": { "type": "integer", "minimum": 0, "maximum": 5 }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Commentaire créé",
+            "schema": { "$ref": "#/definitions/Comment" }
+          }
+        }
+      }
+    },
+    "/comments/{comment_id}": {
+      "put": {
+        "security": [{ "Bearer": [] }],
+        "description": "Met à jour un commentaire",
+        "parameters": [
+          {
+            "name": "comment_id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "title": { "type": "string" },
+                "message": { "type": "string" },
+                "rating": { "type": "integer", "minimum": 0, "maximum": 5 }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Commentaire mis à jour",
+            "schema": { "$ref": "#/definitions/Comment" }
+          },
+          "404": { "description": "Commentaire non trouvé" }
+        }
+      },
+      "delete": {
+        "security": [{ "Bearer": [] }],
+        "description": "Supprime un commentaire",
+        "parameters": [
+          {
+            "name": "comment_id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Commentaire supprimé",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/categories": {
+      "get": {
+        "security": [{ "Bearer": [] }],
+        "description": "Liste toutes les catégories",
+        "responses": {
+          "200": {
+            "description": "Liste des catégories",
+            "schema": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/Category" }
+            }
+          }
+        }
+      }
+    },
+    "/categories/{category_id}": {
+      "get": {
+        "security": [{ "Bearer": [] }],
+        "description": "Liste les livres d'une catégorie",
+        "parameters": [
+          {
+            "name": "category_id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des livres",
+            "schema": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/Book" }
+            }
+          },
+          "404": { "description": "Catégorie non trouvée" }
+        }
+      },
+      "delete": {
+        "security": [{ "Bearer": [] }],
+        "description": "Supprime une catégorie",
+        "parameters": [
+          {
+            "name": "category_id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Catégorie supprimée",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/categories/{book_id}": {
+      "post": {
+        "security": [{ "Bearer": [] }],
+        "description": "Ajoute une catégorie à un livre",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "required": ["category_name"],
+              "properties": {
+                "category_name": { "type": "string" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Catégorie ajoutée",
+            "schema": { "$ref": "#/definitions/Category" }
+          }
+        }
+      },
+      "put": {
+        "security": [{ "Bearer": [] }],
+        "description": "Définit la catégorie d'un livre",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "required": true,
+            "type": "integer"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "required": ["category_name"],
+              "properties": {
+                "category_name": { "type": "string" }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Catégorie mise à jour",
+            "schema": { "$ref": "#/definitions/Category" }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "User": {
+      "type": "object",
+      "properties": {
+        "user_id": { "type": "integer" },
+        "username": { "type": "string" },
+        "email": { "type": "string" }
+      }
+    },
+    "Book": {
+      "type": "object",
+      "properties": {
+        "book_id": { "type": "integer" },
+        "title": { "type": "string" },
+        "author": { "type": "string" },
+        "description": { "type": "string" },
+        "publish_date": { "type": "string", "format": "date" },
+        "language_": { "type": "string" },
+        "isbn": { "type": "string" },
+        "url": { "type": "string" },
+        "cover_image_url": { "type": "string" },
+        "average_rating": { "type": "string" },
+        "Comments": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Comment" }
+        }
+      }
+    },
+    "Comment": {
+      "type": "object",
+      "properties": {
+        "comment_id": { "type": "integer" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "rating": { "type": "integer" }
+      }
+    },
+    "Category": {
+      "type": "object",
+      "properties": {
+        "category_id": { "type": "integer" },
+        "name": { "type": "string" }
+      }
+    },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "error": { "type": "string" }
+      }
+    }
+  }
+}

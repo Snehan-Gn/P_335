@@ -6,7 +6,15 @@
         {
             InitializeComponent();
 
-            MainPage = new AppShell();
+            var token = Preferences.Get("jwt_token", string.Empty);
+            if (string.IsNullOrEmpty(token))
+            {
+                MainPage = new LoginPage();
+            }
+            else
+            {
+                MainPage = new AppShell();
+            }
         }
     }
 }

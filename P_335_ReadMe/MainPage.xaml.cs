@@ -23,6 +23,9 @@ namespace P_335_ReadMe
         {
             var dbPath = Path.Combine(FileSystem.AppDataDirectory, "readme.db3");
             _db = new SQLiteAsyncConnection(dbPath);
+            
+            // On vide la table pour supprimer les anciens livres (Harry Potter, etc.)
+            await _db.DropTableAsync<Book>();
             await _db.CreateTableAsync<Book>();
 
             await SyncWithApi();
@@ -53,8 +56,6 @@ namespace P_335_ReadMe
                     {
                         System.Diagnostics.Debug.WriteLine($">>> Nouveau livre API détecté : {apiBook.Title}");
                         
-                        // IMPORTANT : On remet l'ID à 0 pour laisser SQLite gérer l'auto-incrément 
-                        // et éviter les conflits avec des IDs locaux existants.
                         apiBook.Id = 0; 
 
                         if (!string.IsNullOrEmpty(apiBook.CoverImagePath))
@@ -73,7 +74,6 @@ namespace P_335_ReadMe
                     {
                         bool updated = false;
 
-                        // Mise à jour des métadonnées si elles ont changé sur le serveur
                         if (existing.EpubFilePath != apiBook.EpubFilePath)
                         {
                             existing.EpubFilePath = apiBook.EpubFilePath;
@@ -137,7 +137,6 @@ namespace P_335_ReadMe
             _currentBookRecord = book;
             System.Diagnostics.Debug.WriteLine($">>> Ouverture du livre : {book.Title}");
 
-            // Si les données sont manquantes (ex: échec de sync initiale), on tente un téléchargement à la demande
             if (book.EpubData == null || book.EpubData.Length == 0)
             {
                 if (!string.IsNullOrEmpty(book.EpubFilePath))
@@ -179,6 +178,11 @@ namespace P_335_ReadMe
 
             try
             {
+                if (book.EpubData == null)
+                {
+                    await DisplayAlert("Erreur", "Données du livre non disponibles.", "OK");
+                    return;
+                }
                 using var stream = new MemoryStream(book.EpubData);
                 _openedBook = await EpubReader.ReadBookAsync(stream);
 
@@ -226,7 +230,7 @@ namespace P_335_ReadMe
             if (_db == null) return;
             string filter = e.NewTextValue?.ToLower() ?? "";
             var books = await _db.Table<Book>()
-                                 .Where(b => (b.Tags ?? "").ToLower().Contains(filter) ||
+                                 .Where(b => (b.Description ?? "").ToLower().Contains(filter) ||
                                              (b.Title ?? "").ToLower().Contains(filter))
                                  .ToListAsync();
             BooksCollection.ItemsSource = books;
@@ -237,21 +241,36 @@ namespace P_335_ReadMe
             var result = await FilePicker.Default.PickAsync(new PickOptions { PickerTitle = "Selectionnez un Epub" });
             if (result != null && _db != null)
             {
-                var bytes = await File.ReadAllBytesAsync(result.FullPath);
-                using var stream = new MemoryStream(bytes);
-                var epub = await EpubReader.ReadBookAsync(stream);
-
-                var newBook = new Book
+                try
                 {
-                    Title = epub.Title ?? result.FileName,
-                    Author = epub.Author ?? "Auteur inconnu",
-                    EpubData = bytes,
-                    CoverImage = epub.CoverImage,
-                    DateAdded = DateTime.Now
-                };
-                await _db.InsertAsync(newBook);
-                LoadLibrary();
+                    // On affiche une alerte pour dire que le téléchargement commence
+                    await DisplayAlert("Importation", "Envoi du livre vers votre bibliothèque en ligne...", "OK");
+                    
+                    var uploadedBook = await _apiService.UploadBookAsync(result.FullPath);
+                    
+                    if (uploadedBook != null)
+                    {
+                        await DisplayAlert("Succès", $"'{uploadedBook.Title}' a été ajouté à votre bibliothèque.", "OK");
+                        // On relance une synchronisation pour récupérer le nouveau livre localement
+                        await SyncWithApi();
+                    }
+                    else
+                    {
+                        await DisplayAlert("Erreur", "Impossible d'envoyer le livre au serveur.", "OK");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await DisplayAlert("Erreur", "Une erreur est survenue lors de l'importation : " + ex.Message, "OK");
+                }
             }
+        }
+
+        private void OnLogoutClicked(object sender, EventArgs e)
+        {
+            Preferences.Remove("jwt_token");
+            if (Application.Current != null)
+                Application.Current.MainPage = new LoginPage();
         }
 
         private void OnBookTapped(object sender, TappedEventArgs e)

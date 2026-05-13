@@ -3,58 +3,71 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:P_335_ReadMe"
              x:Class="P_335_ReadMe.MainPage"
-             BackgroundColor="#F0F4F0">
+             BackgroundColor="#F5F6FA">
 
     <ContentPage.Resources>
         <local:ByteArrayToImageConverter x:Key="ByteArrayToImageConverter" />
     </ContentPage.Resources>
 
     <Grid RowDefinitions="Auto, *, Auto">
-        <BoxView Grid.Row="0" Color="#2E7D32" HeightRequest="60" />
-        <Label Grid.Row="0" Text="Ma Bibliothèque" TextColor="White" 
-               FontSize="24" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center" />
+        <Grid Grid.Row="0" ColumnDefinitions="*, Auto" Padding="15, 10">
+            <BoxView Grid.ColumnSpan="2" Color="#512BD4" HeightRequest="60" Margin="-15, -10" />
+            <Label Grid.Column="0" Text="Ma Bibliothèque" TextColor="White" 
+                   FontSize="22" FontAttributes="Bold" VerticalOptions="Center" />
+            <Button Grid.Column="1" Text="Déconnexion" Clicked="OnLogoutClicked" 
+                    BackgroundColor="Transparent" TextColor="White" VerticalOptions="Center" FontSize="14" />
+        </Grid>
 
-        <CollectionView x:Name="BooksCollection" Grid.Row="1" Margin="10" SelectionMode="None">
+        <CollectionView x:Name="BooksCollection" Grid.Row="1" Margin="15" SelectionMode="None">
             <CollectionView.ItemsLayout>
-                <GridItemsLayout Orientation="Vertical" Span="2" HorizontalItemSpacing="10" VerticalItemSpacing="10" />
+                <GridItemsLayout Orientation="Vertical" Span="2" HorizontalItemSpacing="15" VerticalItemSpacing="15" />
             </CollectionView.ItemsLayout>
             <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <Frame BackgroundColor="White" BorderColor="#A5D6A7" CornerRadius="10" Padding="0" HasShadow="True">
+                    <Frame BackgroundColor="White" BorderColor="#DCDDE1" CornerRadius="12" Padding="0" HasShadow="True" Elevation="2">
                         <Frame.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnBookTapped" CommandParameter="{Binding .}" />
                         </Frame.GestureRecognizers>
-                        <VerticalStackLayout Spacing="5" Padding="10">
+                        <VerticalStackLayout Spacing="8" Padding="0">
                             <!-- Image avec fallback si nulle -->
-                            <Grid HeightRequest="150">
-                                <BoxView Color="#E8F5E9" CornerRadius="5" />
+                            <Grid HeightRequest="180">
+                                <BoxView Color="#F1F2F6" CornerRadius="12,12,0,0" />
                                 <Image Source="{Binding CoverImage, Converter={StaticResource ByteArrayToImageConverter}}" 
                                        Aspect="AspectFill" />
-                                <Label Text="📖" HorizontalOptions="Center" VerticalOptions="Center" FontSize="40"
+                                <Label Text="📚" HorizontalOptions="Center" VerticalOptions="Center" FontSize="50"
                                        IsVisible="{Binding CoverImage, Converter={StaticResource ByteArrayToImageConverter}, ConverterParameter='Inverse'}" />
                             </Grid>
                             
-                            <Label Text="{Binding Title}" FontAttributes="Bold" MaxLines="2" LineBreakMode="TailTruncation" TextColor="#1B5E20" />
-                            <Label Text="{Binding Author}" FontSize="12" TextColor="#4CAF50" />
-                            
-                            <!-- Indicateur de statut du fichier -->
-                            <Label Text="Fichier manquant" FontSize="10" TextColor="Red" HorizontalOptions="End">
-                                <Label.Triggers>
-                                    <DataTrigger TargetType="Label" Binding="{Binding EpubData.Length}" Value="0">
-                                        <Setter Property="IsVisible" Value="True" />
-                                    </DataTrigger>
-                                </Label.Triggers>
-                            </Label>
+                            <VerticalStackLayout Padding="10, 0, 10, 10" Spacing="4">
+                                <Label Text="{Binding Title}" FontAttributes="Bold" MaxLines="2" LineBreakMode="TailTruncation" TextColor="#2F3640" FontSize="14" />
+                                <Label Text="{Binding Author}" FontSize="12" TextColor="#7F8C8D" />
+                                
+                                <HorizontalStackLayout Spacing="5" IsVisible="{Binding AverageRating, Converter={StaticResource ByteArrayToImageConverter}, ConverterParameter='NotNull'}">
+                                    <Label Text="⭐" FontSize="10" VerticalOptions="Center"/>
+                                    <Label Text="{Binding AverageRating}" FontSize="11" TextColor="#F1C40F" VerticalOptions="Center"/>
+                                </HorizontalStackLayout>
+
+                                <!-- Indicateur de statut du fichier -->
+                                <Label Text="Fichier manquant" FontSize="10" TextColor="#E84118" HorizontalOptions="End" Margin="0,5,0,0">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding EpubData.Length}" Value="0">
+                                            <Setter Property="IsVisible" Value="True" />
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                            </VerticalStackLayout>
                         </VerticalStackLayout>
                     </Frame>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <HorizontalStackLayout Grid.Row="2" HorizontalOptions="Center" Spacing="10" Padding="10">
-            <Button Text=" + Importer Epub" Clicked="OnImportClicked" BackgroundColor="#2E7D32" TextColor="White" CornerRadius="25" />
-            <Entry x:Name="TagFilter" Placeholder="Filtrer..." WidthRequest="200" TextChanged="OnFilterChanged" />
-        </HorizontalStackLayout>
+        <Grid Grid.Row="2" BackgroundColor="White" Padding="15, 10" ColumnDefinitions="*, Auto">
+            <Entry x:Name="TagFilter" Placeholder="Rechercher un livre..." TextColor="#2F3640" 
+                   BackgroundColor="#F1F2F6" Margin="0,0,10,0" TextChanged="OnFilterChanged" HeightRequest="45" />
+            <Button Grid.Column="1" Text="+" Clicked="OnImportClicked" 
+                    BackgroundColor="#512BD4" TextColor="White" WidthRequest="45" HeightRequest="45" CornerRadius="22.5" Padding="0" FontSize="24" />
+        </Grid>
 
         <Grid x:Name="ReaderContainer" Grid.Row="0" Grid.RowSpan="3" IsVisible="False" BackgroundColor="White">
             <Grid.RowDefinitions>
@@ -64,8 +77,8 @@
             </Grid.RowDefinitions>
 
             <!-- Header du Lecteur -->
-            <Grid Grid.Row="0" BackgroundColor="#2E7D32" Padding="10" ColumnDefinitions="Auto, *, Auto">
-                <Button Grid.Column="0" Text="← Retour" Clicked="OnCloseReaderClicked" BackgroundColor="Transparent" TextColor="White" FontAttributes="Bold" />
+            <Grid Grid.Row="0" BackgroundColor="#512BD4" Padding="10" ColumnDefinitions="Auto, *, Auto">
+                <Button Grid.Column="0" Text="←" Clicked="OnCloseReaderClicked" BackgroundColor="Transparent" TextColor="White" FontSize="20" FontAttributes="Bold" />
                 <Label Grid.Column="1" x:Name="ReaderTitleLabel" Text="Lecture" TextColor="White" FontSize="16" FontAttributes="Bold" 
                        HorizontalOptions="Center" VerticalOptions="Center" LineBreakMode="TailTruncation" />
             </Grid>
@@ -73,10 +86,10 @@
             <WebView x:Name="ReaderView" Grid.Row="1" />
 
             <!-- Barre de navigation -->
-            <Grid Grid.Row="2" BackgroundColor="#F1F8E9" Padding="10" ColumnDefinitions="*, *, *">
-                <Button Grid.Column="0" Text="Précédent" Clicked="OnPreviousClicked" BackgroundColor="#4CAF50" TextColor="White" CornerRadius="20" HeightRequest="40" />
-                <Label Grid.Column="1" x:Name="PageIndicatorLabel" Text="Chapitre 0/0" HorizontalOptions="Center" VerticalOptions="Center" TextColor="#1B5E20" FontSize="12" />
-                <Button Grid.Column="2" Text="Suivant" Clicked="OnNextClicked" BackgroundColor="#4CAF50" TextColor="White" CornerRadius="20" HeightRequest="40" />
+            <Grid Grid.Row="2" BackgroundColor="#F5F6FA" Padding="15" ColumnDefinitions="*, *, *">
+                <Button Grid.Column="0" Text="Précédent" Clicked="OnPreviousClicked" BackgroundColor="#512BD4" TextColor="White" CornerRadius="8" HeightRequest="40" FontSize="12" />
+                <Label Grid.Column="1" x:Name="PageIndicatorLabel" Text="Chapitre 0/0" HorizontalOptions="Center" VerticalOptions="Center" TextColor="#2F3640" FontSize="11" />
+                <Button Grid.Column="2" Text="Suivant" Clicked="OnNextClicked" BackgroundColor="#512BD4" TextColor="White" CornerRadius="8" HeightRequest="40" FontSize="12" />
             </Grid>
         </Grid>
     </Grid>

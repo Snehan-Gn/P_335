@@ -7,7 +7,7 @@ namespace P_335_ReadMe.Models
     public class Book
     {
         [PrimaryKey, AutoIncrement]
-        [JsonPropertyName("id")]
+        [JsonPropertyName("book_id")]
         public int Id { get; set; }
 
         [JsonPropertyName("title")]
@@ -16,10 +16,10 @@ namespace P_335_ReadMe.Models
         [JsonPropertyName("author")]
         public string Author { get; set; } = string.Empty;
 
-        [JsonPropertyName("epub_file_path")]
+        [JsonPropertyName("url")]
         public string? EpubFilePath { get; set; }
 
-        [JsonPropertyName("cover_image_path")]
+        [JsonPropertyName("cover_image_url")]
         public string? CoverImagePath { get; set; }
 
         public byte[]? EpubData { get; set; }
@@ -32,7 +32,11 @@ namespace P_335_ReadMe.Models
         public string? UploadedAt { get; set; }
 
         [JsonPropertyName("description")]
-        public string Tags { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+
+        [JsonPropertyName("average_rating")]
+        [Ignore]
+        public string? AverageRating { get; set; }
 
         public int LastPageRead { get; set; }
     }
