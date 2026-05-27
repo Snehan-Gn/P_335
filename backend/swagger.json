@@ -8,14 +8,6 @@
   "host": "localhost:3000",
   "basePath": "/",
   "schemes": ["http"],
-  "securityDefinitions": {
-    "Bearer": {
-      "type": "apiKey",
-      "name": "Authorization",
-      "in": "header",
-      "description": "Format: Bearer <token>"
-    }
-  },
   "paths": {
     "/": {
       "get": {
@@ -27,77 +19,8 @@
         }
       }
     },
-    "/register": {
-      "post": {
-        "description": "Enregistre un nouvel utilisateur",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "required": ["username", "email", "password"],
-              "properties": {
-                "username": { "type": "string" },
-                "email": { "type": "string" },
-                "password": { "type": "string" }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Utilisateur créé",
-            "schema": { "$ref": "#/definitions/User" }
-          },
-          "500": {
-            "description": "Erreur serveur",
-            "schema": { "$ref": "#/definitions/Error" }
-          }
-        }
-      }
-    },
-    "/login": {
-      "post": {
-        "description": "Connexion utilisateur",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "required": ["email", "password"],
-              "properties": {
-                "email": { "type": "string" },
-                "password": { "type": "string" }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Authentification réussie",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "token": { "type": "string" }
-              }
-            }
-          },
-          "401": {
-            "description": "Identifiants invalides",
-            "schema": { "$ref": "#/definitions/Error" }
-          },
-          "500": {
-            "description": "Erreur serveur",
-            "schema": { "$ref": "#/definitions/Error" }
-          }
-        }
-      }
-    },
     "/users": {
       "get": {
-        "security": [{ "Bearer": [] }],
         "description": "Liste tous les utilisateurs",
         "responses": {
           "200": {
@@ -114,7 +37,6 @@
     },
     "/users/{id}": {
       "get": {
-        "security": [{ "Bearer": [] }],
         "description": "Récupère un utilisateur par ID",
         "parameters": [
           {
@@ -141,7 +63,6 @@
     },
     "/books": {
       "get": {
-        "security": [{ "Bearer": [] }],
         "description": "Liste les livres de l'utilisateur",
         "responses": {
           "200": {
@@ -155,7 +76,6 @@
         }
       },
       "post": {
-        "security": [{ "Bearer": [] }],
         "description": "Télécharge un nouveau livre (EPUB)",
         "consumes": ["multipart/form-data"],
         "parameters": [
@@ -179,7 +99,6 @@
     },
     "/books/{id}": {
       "get": {
-        "security": [{ "Bearer": [] }],
         "description": "Récupère un livre par ID",
         "parameters": [
           {
@@ -198,7 +117,6 @@
         }
       },
       "put": {
-        "security": [{ "Bearer": [] }],
         "description": "Met à jour un livre",
         "parameters": [
           {
@@ -232,7 +150,6 @@
         }
       },
       "delete": {
-        "security": [{ "Bearer": [] }],
         "description": "Supprime un livre",
         "parameters": [
           {
@@ -257,7 +174,6 @@
     },
     "/comments": {
       "get": {
-        "security": [{ "Bearer": [] }],
         "description": "Liste tous les commentaires de l'utilisateur",
         "responses": {
           "200": {
@@ -272,7 +188,6 @@
     },
     "/comments/{book_id}": {
       "get": {
-        "security": [{ "Bearer": [] }],
         "description": "Liste les commentaires d'un livre",
         "parameters": [
           {
@@ -294,7 +209,6 @@
         }
       },
       "post": {
-        "security": [{ "Bearer": [] }],
         "description": "Ajoute un commentaire à un livre",
         "parameters": [
           {
@@ -327,7 +241,6 @@
     },
     "/comments/{comment_id}": {
       "put": {
-        "security": [{ "Bearer": [] }],
         "description": "Met à jour un commentaire",
         "parameters": [
           {
@@ -358,7 +271,6 @@
         }
       },
       "delete": {
-        "security": [{ "Bearer": [] }],
         "description": "Supprime un commentaire",
         "parameters": [
           {
@@ -383,7 +295,6 @@
     },
     "/categories": {
       "get": {
-        "security": [{ "Bearer": [] }],
         "description": "Liste toutes les catégories",
         "responses": {
           "200": {
@@ -398,7 +309,6 @@
     },
     "/categories/{category_id}": {
       "get": {
-        "security": [{ "Bearer": [] }],
         "description": "Liste les livres d'une catégorie",
         "parameters": [
           {
@@ -420,7 +330,6 @@
         }
       },
       "delete": {
-        "security": [{ "Bearer": [] }],
         "description": "Supprime une catégorie",
         "parameters": [
           {
@@ -445,7 +354,6 @@
     },
     "/categories/{book_id}": {
       "post": {
-        "security": [{ "Bearer": [] }],
         "description": "Ajoute une catégorie à un livre",
         "parameters": [
           {
@@ -474,7 +382,6 @@
         }
       },
       "put": {
-        "security": [{ "Bearer": [] }],
         "description": "Définit la catégorie d'un livre",
         "parameters": [
           {
