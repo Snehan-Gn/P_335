@@ -14,8 +14,7 @@ async function currentUser(req, res, next) {
       user = await User.findByPk(requestedId);
       if (!user) {
         return res.status(400).json({
-          error:
-            "Invalid X-User-Id: user not found. Omit the header to use default user.",
+          error: "Invalid X-User-Id: user not found.",
         });
       }
     } else if (envDefaultId && Number.isFinite(envDefaultId)) {
@@ -27,9 +26,10 @@ async function currentUser(req, res, next) {
     }
 
     if (!user) {
-      return res.status(500).json({
-        error:
-          "No users exist in database. Create at least one user (seed/import SQL).",
+      user = await User.create({
+        username: "default",
+        email: "default@readme.local",
+        password_hash: "no-auth",
       });
     }
 
@@ -41,4 +41,3 @@ async function currentUser(req, res, next) {
 }
 
 module.exports = currentUser;
-

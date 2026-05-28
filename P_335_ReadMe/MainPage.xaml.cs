@@ -203,26 +203,17 @@ namespace P_335_ReadMe
         private async void OnImportClicked(object sender, EventArgs e)
         {
             var result = await FilePicker.Default.PickAsync(new PickOptions { PickerTitle = "Selectionnez un Epub" });
-            if (result != null && _db != null)
+            if (result == null || _db == null) return;
+
+            var (uploadedBook, error) = await _apiService.UploadBookAsync(result.FullPath);
+            if (uploadedBook != null)
             {
-                try
-                {
-                    await DisplayAlert("Importation", "Envoi du livre vers votre bibliothèque en ligne...", "OK");
-                    var uploadedBook = await _apiService.UploadBookAsync(result.FullPath);
-                    if (uploadedBook != null)
-                    {
-                        await DisplayAlert("Succès", $"'{uploadedBook.Title}' a été ajouté à votre bibliothèque.", "OK");
-                        await SyncWithApi();
-                    }
-                    else
-                    {
-                        await DisplayAlert("Erreur", "Impossible d'envoyer le livre au serveur.", "OK");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    await DisplayAlert("Erreur", "Une erreur est survenue lors de l'importation : " + ex.Message, "OK");
-                }
+                await DisplayAlert("Succès", $"'{uploadedBook.Title}' a été ajouté à votre bibliothèque.", "OK");
+                await SyncWithApi();
+            }
+            else
+            {
+                await DisplayAlert("Erreur", error ?? "Impossible d'envoyer le livre au serveur.", "OK");
             }
         }
 

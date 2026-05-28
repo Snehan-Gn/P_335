@@ -12,7 +12,7 @@ namespace P_335_ReadMe.Services
 
         public static string UrlApi => $"{BaseUrl}/books";
 
-        public async Task<Book?> UploadBookAsync(string filePath)
+        public async Task<(Book? book, string? error)> UploadBookAsync(string filePath)
         {
             try
             {
@@ -23,10 +23,17 @@ namespace P_335_ReadMe.Services
                 content.Add(streamContent, "epub_file", Path.GetFileName(filePath));
                 var response = await _httpClient.PostAsync($"{BaseUrl}/books", content);
                 if (response.IsSuccessStatusCode)
-                    return await response.Content.ReadFromJsonAsync<Book>();
+                {
+                    var book = await response.Content.ReadFromJsonAsync<Book>();
+                    return (book, null);
+                }
+                var errorBody = await response.Content.ReadAsStringAsync();
+                return (null, $"Erreur {(int)response.StatusCode} : {errorBody}");
             }
-            catch { }
-            return null;
+            catch (Exception ex)
+            {
+                return (null, ex.Message);
+            }
         }
 
         public async Task<List<Book>> FetchBooksAsync()
