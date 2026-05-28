@@ -15,6 +15,9 @@ namespace P_335_ReadMe
         private readonly ApiService _apiService = new ApiService();
         private string? _activeTagFilter;
 
+        private enum SortMode { DateDesc, DateAsc, TitleAsc, TitleDesc }
+        private SortMode _sortMode = SortMode.DateDesc;
+
         public MainPage()
         {
             InitializeComponent();
@@ -105,6 +108,14 @@ namespace P_335_ReadMe
 
             if (!string.IsNullOrEmpty(_activeTagFilter))
                 books = books.Where(b => b.Tags.Contains(_activeTagFilter)).ToList();
+
+            books = _sortMode switch
+            {
+                SortMode.DateAsc  => books.OrderBy(b => b.DateAdded).ToList(),
+                SortMode.TitleAsc => books.OrderBy(b => b.Title).ToList(),
+                SortMode.TitleDesc => books.OrderByDescending(b => b.Title).ToList(),
+                _                 => books.OrderByDescending(b => b.DateAdded).ToList(),
+            };
 
             BooksCollection.ItemsSource = books;
         }
@@ -286,6 +297,23 @@ namespace P_335_ReadMe
             }
 
             await SyncWithApi();
+        }
+
+        private async void OnSortClicked(object sender, EventArgs e)
+        {
+            var action = await DisplayActionSheet("Trier par", "Annuler", null,
+                "Date ↓ (récent)", "Date ↑ (ancien)", "Titre A → Z", "Titre Z → A");
+
+            _sortMode = action switch
+            {
+                "Date ↑ (ancien)" => SortMode.DateAsc,
+                "Titre A → Z"     => SortMode.TitleAsc,
+                "Titre Z → A"     => SortMode.TitleDesc,
+                "Date ↓ (récent)" => SortMode.DateDesc,
+                _                 => _sortMode,
+            };
+
+            LoadLibrary();
         }
 
         private void OnCloseReaderClicked(object sender, EventArgs e)

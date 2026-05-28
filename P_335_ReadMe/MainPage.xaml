@@ -84,13 +84,17 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <!-- Bottom bar: search + import -->
+        <!-- Bottom bar: search + sort + import -->
         <Grid Grid.Row="3" BackgroundColor="White" Padding="15,10"
-              ColumnDefinitions="*, Auto">
+              ColumnDefinitions="*, Auto, Auto">
             <Entry x:Name="TagFilter" Placeholder="Rechercher un livre..." TextColor="#2F3640"
                    BackgroundColor="#F1F2F6" Margin="0,0,10,0"
                    TextChanged="OnFilterChanged" HeightRequest="45" />
-            <Button Grid.Column="1" Text="+" Clicked="OnImportClicked"
+            <Button Grid.Column="1" Text="⇅" Clicked="OnSortClicked"
+                    BackgroundColor="#F1F2F6" TextColor="#512BD4"
+                    WidthRequest="45" HeightRequest="45" CornerRadius="8"
+                    Padding="0" FontSize="18" Margin="0,0,10,0" />
+            <Button Grid.Column="2" Text="+" Clicked="OnImportClicked"
                     BackgroundColor="#512BD4" TextColor="White"
                     WidthRequest="45" HeightRequest="45" CornerRadius="23"
                     Padding="0" FontSize="24" />
