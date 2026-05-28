@@ -65,6 +65,21 @@ router.put("/:book_id", async function (req, res, next) {
   }
 });
 
+router.delete("/:book_id/remove", async function (req, res, next) {
+  try {
+    const { category_name } = req.body;
+    const { book_id } = req.params;
+    const book = await Book.findOne({ where: { book_id } });
+    if (!book) return res.status(404).json({ error: "Book not found" });
+    const category = await Category.findOne({ where: { name: category_name } });
+    if (!category) return res.status(404).json({ error: "Category not found" });
+    await book.removeCategory(category);
+    return res.json({ message: "Tag removed" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.delete("/:category_id", async function (req, res, next) {
   try {
     const { category_id } = req.params;

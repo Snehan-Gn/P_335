@@ -1,7 +1,7 @@
 const { User, Book, Comment, Category } = require("../models");
 const { Op } = require("sequelize");
-const fs = require("fs");
 const path = require("path");
+const fs = require("fs");
 
 var express = require("express");
 var router = express.Router();
@@ -46,7 +46,6 @@ async function getMissingData(title, author) {
       publish_date: volumeInfo.publishedDate || null,
       language_: volumeInfo.language || null,
       isbn: volumeInfo.industryIdentifiers ? volumeInfo.industryIdentifiers[0].identifier : null,
-      cover_image_url: volumeInfo.imageLinks ? volumeInfo.imageLinks.thumbnail : null,
     };
   } catch {
     return null;
@@ -78,15 +77,11 @@ router.get("/", async function (req, res, next) {
         attributes: [],
         through: { attributes: [] },
       },
-    ];
-
-    if (category) {
-      include.push({
+      {
         model: Category,
-        where: { name: { [Op.substring]: category } },
         through: { attributes: [] },
-      });
-    }
+      },
+    ];
 
     let order = [["book_id", "ASC"]];
     if (sort) {
@@ -98,13 +93,19 @@ router.get("/", async function (req, res, next) {
       }
     }
 
-    const books = await user.getBooks({
+    let books = await user.getBooks({
       where,
       include,
       limit: limit ? parseInt(limit) : undefined,
       distinct: true,
       order,
     });
+
+    if (category) {
+      books = books.filter(b =>
+        b.Categories && b.Categories.some(c => c.name.toLowerCase().includes(category.toLowerCase()))
+      );
+    }
 
     res.json(books);
   } catch (error) {
@@ -154,7 +155,6 @@ router.post("/", upload.any(), async function (req, res, next) {
       language_: metadata.language || (fallbackMetadata ? fallbackMetadata.language_ : null),
       isbn: metadata.identifier || (fallbackMetadata ? fallbackMetadata.isbn : null),
       url: "/books/" + uploadedFile.filename,
-      cover_image_url: fallbackMetadata ? fallbackMetadata.cover_image_url : null,
     });
 
     const user = await User.findOne({ where: { user_id: req.user.user_id } });

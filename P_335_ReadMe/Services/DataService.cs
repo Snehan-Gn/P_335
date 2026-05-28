@@ -8,7 +8,7 @@ namespace P_335_ReadMe.Services
         private static readonly HttpClient _httpClient = new HttpClient();
 
         private static string BaseUrl =>
-            DeviceInfo.Platform == DevicePlatform.Android ? "http://10.0.2.2:3000" : "http://127.0.0.1:3000";
+            DeviceInfo.Platform == DevicePlatform.Android ? "http://10.0.2.2:3002" : "http://127.0.0.1:3002";
 
         public static string UrlApi => $"{BaseUrl}/books";
 
@@ -34,6 +34,32 @@ namespace P_335_ReadMe.Services
             {
                 return (null, ex.Message);
             }
+        }
+
+        public async Task<(bool success, string? error)> AddTagAsync(int apiBookId, string tagName)
+        {
+            try
+            {
+                var response = await _httpClient.PostAsync(
+                    $"{BaseUrl}/categories/{apiBookId}",
+                    JsonContent.Create(new { category_name = tagName }));
+                if (response.IsSuccessStatusCode) return (true, null);
+                return (false, await response.Content.ReadAsStringAsync());
+            }
+            catch (Exception ex) { return (false, ex.Message); }
+        }
+
+        public async Task<(bool success, string? error)> RemoveTagAsync(int apiBookId, string tagName)
+        {
+            try
+            {
+                var request = new HttpRequestMessage(HttpMethod.Delete, $"{BaseUrl}/categories/{apiBookId}/remove");
+                request.Content = JsonContent.Create(new { category_name = tagName });
+                var response = await _httpClient.SendAsync(request);
+                if (response.IsSuccessStatusCode) return (true, null);
+                return (false, await response.Content.ReadAsStringAsync());
+            }
+            catch (Exception ex) { return (false, ex.Message); }
         }
 
         public async Task<List<Book>> FetchBooksAsync()

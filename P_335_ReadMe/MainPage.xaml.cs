@@ -2,6 +2,7 @@ using P_335_ReadMe.Models;
 using P_335_ReadMe.Services;
 using SQLite;
 using System.IO;
+using System.Text.Json;
 using VersOne.Epub;
 
 namespace P_335_ReadMe
@@ -12,6 +13,7 @@ namespace P_335_ReadMe
         private EpubBook? _openedBook;
         private Book? _currentBookRecord;
         private readonly ApiService _apiService = new ApiService();
+        private string? _activeTagFilter;
 
         public MainPage()
         {
@@ -42,17 +44,16 @@ namespace P_335_ReadMe
                     else
                         apiBook.DateAdded = DateTime.Now;
 
+                    apiBook.TagsJson = apiBook.ApiCategories != null
+                        ? JsonSerializer.Serialize(apiBook.ApiCategories.Select(c => c.Name).ToList())
+                        : null;
+
                     var existing = await _db.Table<Book>()
-                                           .Where(b => b.Title == apiBook.Title)
+                                           .Where(b => b.ApiBookId == apiBook.ApiBookId)
                                            .FirstOrDefaultAsync();
 
                     if (existing == null)
                     {
-                        apiBook.Id = 0;
-
-                        if (!string.IsNullOrEmpty(apiBook.CoverImagePath))
-                            apiBook.CoverImage = await _apiService.FetchFileAsync(apiBook.CoverImagePath);
-
                         if (!string.IsNullOrEmpty(apiBook.EpubFilePath))
                             apiBook.EpubData = await _apiService.FetchFileAsync(apiBook.EpubFilePath);
 
@@ -62,14 +63,15 @@ namespace P_335_ReadMe
                     {
                         bool updated = false;
 
+                        if (existing.TagsJson != apiBook.TagsJson)
+                        {
+                            existing.TagsJson = apiBook.TagsJson;
+                            updated = true;
+                        }
+
                         if (existing.EpubFilePath != apiBook.EpubFilePath)
                         {
                             existing.EpubFilePath = apiBook.EpubFilePath;
-                            updated = true;
-                        }
-                        if (existing.CoverImagePath != apiBook.CoverImagePath)
-                        {
-                            existing.CoverImagePath = apiBook.CoverImagePath;
                             updated = true;
                         }
 
@@ -78,15 +80,6 @@ namespace P_335_ReadMe
                             if (!string.IsNullOrEmpty(apiBook.EpubFilePath))
                             {
                                 existing.EpubData = await _apiService.FetchFileAsync(apiBook.EpubFilePath);
-                                updated = true;
-                            }
-                        }
-
-                        if (existing.CoverImage == null || existing.CoverImage.Length == 0)
-                        {
-                            if (!string.IsNullOrEmpty(apiBook.CoverImagePath))
-                            {
-                                existing.CoverImage = await _apiService.FetchFileAsync(apiBook.CoverImagePath);
                                 updated = true;
                             }
                         }
@@ -106,7 +99,50 @@ namespace P_335_ReadMe
         {
             if (_db == null) return;
             var books = await _db.Table<Book>().OrderByDescending(b => b.DateAdded).ToListAsync();
+
+            var allTags = books.SelectMany(b => b.Tags).Distinct().OrderBy(t => t).ToList();
+            UpdateTagFilterBar(allTags);
+
+            if (!string.IsNullOrEmpty(_activeTagFilter))
+                books = books.Where(b => b.Tags.Contains(_activeTagFilter)).ToList();
+
             BooksCollection.ItemsSource = books;
+        }
+
+        private void UpdateTagFilterBar(List<string> tags)
+        {
+            TagFilterBar.Children.Clear();
+            FilterScrollView.IsVisible = tags.Count > 0;
+
+            foreach (var tag in tags)
+            {
+                bool isActive = tag == _activeTagFilter;
+                var chip = new Frame
+                {
+                    BackgroundColor = isActive ? Color.FromArgb("#512BD4") : Color.FromArgb("#EEE8FF"),
+                    CornerRadius = 15,
+                    Padding = new Thickness(12, 5),
+                    HasShadow = false,
+                    BorderColor = Colors.Transparent,
+                };
+                chip.Content = new Label
+                {
+                    Text = tag,
+                    FontSize = 12,
+                    TextColor = isActive ? Colors.White : Color.FromArgb("#512BD4"),
+                    VerticalOptions = LayoutOptions.Center,
+                };
+                var captured = tag;
+                chip.GestureRecognizers.Add(new TapGestureRecognizer
+                {
+                    Command = new Command(() =>
+                    {
+                        _activeTagFilter = _activeTagFilter == captured ? null : captured;
+                        LoadLibrary();
+                    }),
+                });
+                TagFilterBar.Children.Add(chip);
+            }
         }
 
         private async void OpenBook(Book book)
@@ -154,6 +190,7 @@ namespace P_335_ReadMe
 
                 ReaderTitleLabel.Text = book.Title;
                 BooksCollection.IsVisible = false;
+                FilterScrollView.IsVisible = false;
                 ReaderContainer.IsVisible = true;
 
                 DisplayPage(book.LastPageRead);
@@ -223,21 +260,39 @@ namespace P_335_ReadMe
                 OpenBook(selectedBook);
         }
 
+        private async void OnManageTagsTapped(object sender, TappedEventArgs e)
+        {
+            if (e.Parameter is not Book book) return;
+
+            var options = new List<string> { "Ajouter un tag" };
+            foreach (var tag in book.Tags)
+                options.Add($"Supprimer '{tag}'");
+
+            var action = await DisplayActionSheet($"Tags — {book.Title}", "Annuler", null, options.ToArray());
+            if (action == null || action == "Annuler") return;
+
+            if (action == "Ajouter un tag")
+            {
+                var tagName = await DisplayPromptAsync("Nouveau tag", "Nom du tag :", "Ajouter", "Annuler", maxLength: 30);
+                if (string.IsNullOrWhiteSpace(tagName)) return;
+                var (success, error) = await _apiService.AddTagAsync(book.ApiBookId, tagName.Trim().ToLower());
+                if (!success) { await DisplayAlert("Erreur", error, "OK"); return; }
+            }
+            else if (action.StartsWith("Supprimer '"))
+            {
+                var tagName = action["Supprimer '".Length..^1];
+                var (success, error) = await _apiService.RemoveTagAsync(book.ApiBookId, tagName);
+                if (!success) { await DisplayAlert("Erreur", error, "OK"); return; }
+            }
+
+            await SyncWithApi();
+        }
+
         private void OnCloseReaderClicked(object sender, EventArgs e)
         {
             ReaderContainer.IsVisible = false;
             BooksCollection.IsVisible = true;
+            LoadLibrary();
         }
-    }
-
-    public class ByteArrayToImageConverter : IValueConverter
-    {
-        public object? Convert(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
-        {
-            if (value is byte[] bytes && bytes.Length > 0)
-                return ImageSource.FromStream(() => new MemoryStream(bytes));
-            return null;
-        }
-        public object? ConvertBack(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture) => null;
     }
 }

@@ -1,90 +1,136 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:local="clr-namespace:P_335_ReadMe"
              x:Class="P_335_ReadMe.MainPage"
              BackgroundColor="#F5F6FA">
 
-    <ContentPage.Resources>
-        <local:ByteArrayToImageConverter x:Key="ByteArrayToImageConverter" />
-    </ContentPage.Resources>
+    <Grid RowDefinitions="Auto, Auto, *, Auto">
 
-    <Grid RowDefinitions="Auto, *, Auto">
-        <Grid Grid.Row="0" Padding="15, 10">
-            <BoxView Color="#512BD4" HeightRequest="60" Margin="-15, -10" />
+        <!-- Header -->
+        <Grid Grid.Row="0" Padding="15,10">
+            <BoxView Color="#512BD4" HeightRequest="60" Margin="-15,-10" />
             <Label Text="Ma Bibliothèque" TextColor="White"
                    FontSize="22" FontAttributes="Bold" VerticalOptions="Center" />
         </Grid>
 
-        <CollectionView x:Name="BooksCollection" Grid.Row="1" Margin="15" SelectionMode="None">
+        <!-- Tag filter bar (hidden when no tags exist) -->
+        <ScrollView x:Name="FilterScrollView" Orientation="Horizontal" Grid.Row="1"
+                    HeightRequest="46" Padding="15,6" IsVisible="False">
+            <HorizontalStackLayout x:Name="TagFilterBar" Spacing="8" VerticalOptions="Center" />
+        </ScrollView>
+
+        <!-- Book grid -->
+        <CollectionView x:Name="BooksCollection" Grid.Row="2" Margin="15" SelectionMode="None">
             <CollectionView.ItemsLayout>
-                <GridItemsLayout Orientation="Vertical" Span="2" HorizontalItemSpacing="15" VerticalItemSpacing="15" />
+                <GridItemsLayout Orientation="Vertical" Span="2"
+                                 HorizontalItemSpacing="15" VerticalItemSpacing="15" />
             </CollectionView.ItemsLayout>
             <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <Frame BackgroundColor="White" BorderColor="#DCDDE1" CornerRadius="12" Padding="0" HasShadow="True">
-                        <Frame.GestureRecognizers>
-                            <TapGestureRecognizer Tapped="OnBookTapped" CommandParameter="{Binding .}" />
-                        </Frame.GestureRecognizers>
-                        <VerticalStackLayout Spacing="8" Padding="0">
-                            <Grid HeightRequest="180">
-                                <BoxView Color="#F1F2F6" CornerRadius="12,12,0,0" />
-                                <Image Source="{Binding CoverImage, Converter={StaticResource ByteArrayToImageConverter}}"
-                                       Aspect="AspectFill" />
-                                <Label Text="📚" HorizontalOptions="Center" VerticalOptions="Center" FontSize="50"
-                                       IsVisible="{Binding CoverImage, Converter={StaticResource ByteArrayToImageConverter}, ConverterParameter='Inverse'}" />
-                            </Grid>
+                    <Frame BackgroundColor="White" BorderColor="#DCDDE1" CornerRadius="12"
+                           Padding="10" HasShadow="True">
+                        <VerticalStackLayout Spacing="6">
 
-                            <VerticalStackLayout Padding="10, 0, 10, 10" Spacing="4">
-                                <Label Text="{Binding Title}" FontAttributes="Bold" MaxLines="2" LineBreakMode="TailTruncation" TextColor="#2F3640" FontSize="14" />
+                            <!-- Tappable area: opens the book -->
+                            <VerticalStackLayout Spacing="4">
+                                <VerticalStackLayout.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnBookTapped"
+                                                          CommandParameter="{Binding .}" />
+                                </VerticalStackLayout.GestureRecognizers>
+                                <Label Text="{Binding Title}" FontAttributes="Bold"
+                                       MaxLines="2" LineBreakMode="TailTruncation"
+                                       TextColor="#2F3640" FontSize="14" />
                                 <Label Text="{Binding Author}" FontSize="12" TextColor="#7F8C8D" />
-
-                                <HorizontalStackLayout Spacing="5" IsVisible="{Binding AverageRating, Converter={StaticResource ByteArrayToImageConverter}, ConverterParameter='NotNull'}">
-                                    <Label Text="⭐" FontSize="10" VerticalOptions="Center"/>
-                                    <Label Text="{Binding AverageRating}" FontSize="11" TextColor="#F1C40F" VerticalOptions="Center"/>
-                                </HorizontalStackLayout>
-
-                                <Label Text="Fichier manquant" FontSize="10" TextColor="#E84118" HorizontalOptions="End" Margin="0,5,0,0">
+                                <Label Text="Fichier manquant" FontSize="10" TextColor="#E84118"
+                                       IsVisible="False">
                                     <Label.Triggers>
-                                        <DataTrigger TargetType="Label" Binding="{Binding EpubData.Length}" Value="0">
+                                        <DataTrigger TargetType="Label"
+                                                     Binding="{Binding HasEpubData}" Value="False">
                                             <Setter Property="IsVisible" Value="True" />
                                         </DataTrigger>
                                     </Label.Triggers>
                                 </Label>
                             </VerticalStackLayout>
+
+                            <!-- Tags row: chips + manage button (does NOT open book) -->
+                            <Grid ColumnDefinitions="*, Auto" MinimumHeightRequest="24">
+                                <FlexLayout Grid.Column="0"
+                                            BindableLayout.ItemsSource="{Binding Tags}"
+                                            Wrap="Wrap" Direction="Row">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate>
+                                            <Frame BackgroundColor="#EEE8FF" CornerRadius="10"
+                                                   Padding="6,2" Margin="2,1"
+                                                   HasShadow="False" BorderColor="Transparent">
+                                                <Label Text="{Binding .}" FontSize="10"
+                                                       TextColor="#512BD4" />
+                                            </Frame>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </FlexLayout>
+
+                                <Label Grid.Column="1" Text="🏷" FontSize="16"
+                                       VerticalOptions="End" Padding="6,0,0,0">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnManageTagsTapped"
+                                                              CommandParameter="{Binding .}" />
+                                    </Label.GestureRecognizers>
+                                </Label>
+                            </Grid>
+
                         </VerticalStackLayout>
                     </Frame>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <Grid Grid.Row="2" BackgroundColor="White" Padding="15, 10" ColumnDefinitions="*, Auto">
+        <!-- Bottom bar: search + import -->
+        <Grid Grid.Row="3" BackgroundColor="White" Padding="15,10"
+              ColumnDefinitions="*, Auto">
             <Entry x:Name="TagFilter" Placeholder="Rechercher un livre..." TextColor="#2F3640"
-                   BackgroundColor="#F1F2F6" Margin="0,0,10,0" TextChanged="OnFilterChanged" HeightRequest="45" />
+                   BackgroundColor="#F1F2F6" Margin="0,0,10,0"
+                   TextChanged="OnFilterChanged" HeightRequest="45" />
             <Button Grid.Column="1" Text="+" Clicked="OnImportClicked"
-                    BackgroundColor="#512BD4" TextColor="White" WidthRequest="45" HeightRequest="45" CornerRadius="23" Padding="0" FontSize="24" />
+                    BackgroundColor="#512BD4" TextColor="White"
+                    WidthRequest="45" HeightRequest="45" CornerRadius="23"
+                    Padding="0" FontSize="24" />
         </Grid>
 
-        <Grid x:Name="ReaderContainer" Grid.Row="0" Grid.RowSpan="3" IsVisible="False" BackgroundColor="White">
+        <!-- Reader overlay -->
+        <Grid x:Name="ReaderContainer" Grid.Row="0" Grid.RowSpan="4"
+              IsVisible="False" BackgroundColor="White">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <Grid Grid.Row="0" BackgroundColor="#512BD4" Padding="10" ColumnDefinitions="Auto, *, Auto">
-                <Button Grid.Column="0" Text="←" Clicked="OnCloseReaderClicked" BackgroundColor="Transparent" TextColor="White" FontSize="20" FontAttributes="Bold" />
-                <Label Grid.Column="1" x:Name="ReaderTitleLabel" Text="Lecture" TextColor="White" FontSize="16" FontAttributes="Bold"
-                       HorizontalOptions="Center" VerticalOptions="Center" LineBreakMode="TailTruncation" />
+            <Grid Grid.Row="0" BackgroundColor="#512BD4" Padding="10"
+                  ColumnDefinitions="Auto, *">
+                <Button Grid.Column="0" Text="←" Clicked="OnCloseReaderClicked"
+                        BackgroundColor="Transparent" TextColor="White"
+                        FontSize="20" FontAttributes="Bold" />
+                <Label Grid.Column="1" x:Name="ReaderTitleLabel" Text="Lecture"
+                       TextColor="White" FontSize="16" FontAttributes="Bold"
+                       HorizontalOptions="Center" VerticalOptions="Center"
+                       LineBreakMode="TailTruncation" />
             </Grid>
 
             <WebView x:Name="ReaderView" Grid.Row="1" />
 
-            <Grid Grid.Row="2" BackgroundColor="#F5F6FA" Padding="15" ColumnDefinitions="*, *, *">
-                <Button Grid.Column="0" Text="Précédent" Clicked="OnPreviousClicked" BackgroundColor="#512BD4" TextColor="White" CornerRadius="8" HeightRequest="40" FontSize="12" />
-                <Label Grid.Column="1" x:Name="PageIndicatorLabel" Text="Chapitre 0/0" HorizontalOptions="Center" VerticalOptions="Center" TextColor="#2F3640" FontSize="11" />
-                <Button Grid.Column="2" Text="Suivant" Clicked="OnNextClicked" BackgroundColor="#512BD4" TextColor="White" CornerRadius="8" HeightRequest="40" FontSize="12" />
+            <Grid Grid.Row="2" BackgroundColor="#F5F6FA" Padding="15"
+                  ColumnDefinitions="*, *, *">
+                <Button Grid.Column="0" Text="Précédent" Clicked="OnPreviousClicked"
+                        BackgroundColor="#512BD4" TextColor="White"
+                        CornerRadius="8" HeightRequest="40" FontSize="12" />
+                <Label Grid.Column="1" x:Name="PageIndicatorLabel" Text="Chapitre 0/0"
+                       HorizontalOptions="Center" VerticalOptions="Center"
+                       TextColor="#2F3640" FontSize="11" />
+                <Button Grid.Column="2" Text="Suivant" Clicked="OnNextClicked"
+                        BackgroundColor="#512BD4" TextColor="White"
+                        CornerRadius="8" HeightRequest="40" FontSize="12" />
             </Grid>
         </Grid>
+
     </Grid>
 </ContentPage>
