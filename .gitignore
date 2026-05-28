@@ -1,0 +1,18 @@
+# Node
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# Environment
+.env
+.env.local
+
+# MAUI / .NET
+bin/
+obj/
+*.user
+.vs/
+
+# OS
+.DS_Store
+Thumbs.db
